@@ -91,6 +91,25 @@ if (enableSwagger)
     app.MapGet("/", () => Results.Redirect("/swagger"));
 }
 
+// Step 2: Optional startup migrations (gated)
+var runMigrationsValue = builder.Configuration["RUN_MIGRATIONS_ON_STARTUP"];
+if (!string.IsNullOrWhiteSpace(runMigrationsValue) && bool.TryParse(runMigrationsValue, out var runMigrations) && runMigrations)
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<CallbackForwarderDbContext>();
+    try
+    {
+        Console.WriteLine("Applying forwarder migrations at startup...");
+        db.Database.Migrate();
+        Console.WriteLine("Forwarder migrations applied successfully.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Startup migration failed: {ex.Message}");
+        // Continue running per guardrails; do not crash ingestion
+    }
+}
+
 // Minimal API: POST /webhook/alchemy
 app.MapPost("/webhook/alchemy", async (HttpRequest request) =>
 {
