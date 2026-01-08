@@ -15,7 +15,7 @@ namespace AlchemyCallbackTest.Forwarder.Migrations
                 schema: "forwarder",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false, defaultValueSql: "gen_random_uuid()"),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Provider = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     EventType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     EventData = table.Column<string>(type: "jsonb", nullable: false),

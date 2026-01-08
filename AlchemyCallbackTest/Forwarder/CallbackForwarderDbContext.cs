@@ -18,7 +18,8 @@ namespace AlchemyCallbackTest.Forwarder
             {
                 entity.ToTable("raw_webhook_events", "forwarder");
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
+                // Use application-generated GUIDs to avoid pgcrypto dependency
+                entity.Property(e => e.Id);
                 entity.Property(e => e.Provider).HasMaxLength(50).IsRequired();
                 entity.Property(e => e.EventType).HasMaxLength(100).IsRequired();
                 entity.Property(e => e.EventData).HasColumnType("jsonb").IsRequired();
