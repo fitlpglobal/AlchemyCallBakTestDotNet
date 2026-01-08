@@ -4,6 +4,7 @@ using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using AlchemyCallbackTest.Forwarder;
+using Microsoft.EntityFrameworkCore.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -107,6 +108,33 @@ if (!string.IsNullOrWhiteSpace(runMigrationsValue) && bool.TryParse(runMigration
     {
         Console.WriteLine($"Startup migration failed: {ex.Message}");
         // Continue running per guardrails; do not crash ingestion
+    }
+
+    // Fallback: if the forwarder table still doesn't exist, create tables from the current model
+    try
+    {
+        var exists = false;
+        if (!string.IsNullOrWhiteSpace(connectionString))
+        {
+            await using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='forwarder' AND c.relname='raw_webhook_events')",
+                conn);
+            var result = await cmd.ExecuteScalarAsync();
+            exists = result is bool b && b;
+        }
+
+        if (!exists)
+        {
+            var creator = db.Database.GetService<IRelationalDatabaseCreator>();
+            creator.CreateTables();
+            Console.WriteLine("Forwarder tables created via EnsureCreated fallback.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Fallback table creation failed: {ex.Message}");
     }
 }
 
