@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 
 namespace AlchemyCallbackTest.Forwarder
 {
@@ -10,7 +11,7 @@ namespace AlchemyCallbackTest.Forwarder
         public string EventData { get; set; } = string.Empty;
         public string EventHash { get; set; } = string.Empty;
         public DateTimeOffset ReceivedAt { get; set; }
-        public string? SourceIp { get; set; }
+        public IPAddress? SourceIp { get; set; }
         public string? Headers { get; set; }
     }
 }
