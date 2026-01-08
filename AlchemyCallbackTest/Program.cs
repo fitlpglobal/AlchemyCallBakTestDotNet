@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using AlchemyCallbackTest.Forwarder;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -127,7 +128,7 @@ if (!string.IsNullOrWhiteSpace(runMigrationsValue) && bool.TryParse(runMigration
 
         if (!exists)
         {
-            var creator = db.Database.GetService<IRelationalDatabaseCreator>();
+            var creator = db.GetService<IRelationalDatabaseCreator>();
             creator.CreateTables();
             Console.WriteLine("Forwarder tables created via EnsureCreated fallback.");
         }
