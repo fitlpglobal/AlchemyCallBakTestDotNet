@@ -26,6 +26,14 @@ namespace AlchemyCallbackTest.Forwarder
                 entity.Property(e => e.ReceivedAt).HasDefaultValueSql("NOW()");
                 entity.Property(e => e.SourceIp).HasColumnType("inet");
                 entity.Property(e => e.Headers).HasColumnType("jsonb");
+
+                // Indexes for performance and deduplication
+                entity.HasIndex(e => e.ReceivedAt).HasDatabaseName("idx_raw_webhook_events_received_at");
+                entity.HasIndex(e => e.Provider).HasDatabaseName("idx_raw_webhook_events_provider");
+                entity.HasIndex(e => e.EventType).HasDatabaseName("idx_raw_webhook_events_event_type");
+                entity.HasIndex(e => new { e.Provider, e.EventHash })
+                      .IsUnique()
+                      .HasDatabaseName("idx_raw_webhook_events_provider_hash");
             });
         }
     }
