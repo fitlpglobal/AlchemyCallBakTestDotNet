@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,7 +10,15 @@ builder.Logging.AddConsole();
 
 // Swagger/OpenAPI (Step 0): services registration
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Callback Forwarder Service",
+        Version = "v1",
+        Description = "Webhook ingestion endpoints for blockchain providers"
+    });
+});
 
 var app = builder.Build();
 
@@ -28,7 +37,13 @@ else if (app.Environment.IsDevelopment())
 if (enableSwagger)
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Callback Forwarder API v1");
+        c.RoutePrefix = "swagger"; // UI at /swagger
+    });
+    // Convenience: redirect root to Swagger UI when enabled
+    app.MapGet("/", () => Results.Redirect("/swagger"));
 }
 
 // Minimal API: POST /webhook/alchemy
