@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AlchemyCallbackTest")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1dc5454d4064d88a1a97e50758b2e86b1d574405")]
 [assembly: System.Reflection.AssemblyProductAttribute("AlchemyCallbackTest")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AlchemyCallbackTest")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
