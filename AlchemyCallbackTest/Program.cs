@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using AlchemyCallbackTest.Forwarder;
 using AlchemyCallbackTest.Persistence;
+using AlchemyCallbackTest.Services;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
@@ -71,6 +72,9 @@ builder.Services.AddDbContext<CallbackForwarderDbContext>(options =>
 // Persistence layer registrations (repository + retry policy)
 builder.Services.AddScoped<IRetryPolicy, RetryPolicy>();
 builder.Services.AddScoped<IEventRepository, EventRepository>();
+
+// Duplicate detection service
+builder.Services.AddSingleton<IDuplicateDetectionService, DuplicateDetectionService>();
 
 var app = builder.Build();
 
