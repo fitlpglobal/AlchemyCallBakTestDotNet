@@ -4,6 +4,7 @@ using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using AlchemyCallbackTest.Forwarder;
+using AlchemyCallbackTest.Persistence;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
@@ -66,6 +67,10 @@ builder.Services.AddDbContext<CallbackForwarderDbContext>(options =>
     });
     options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
 });
+
+// Persistence layer registrations (repository + retry policy)
+builder.Services.AddScoped<IRetryPolicy, RetryPolicy>();
+builder.Services.AddScoped<IEventRepository, EventRepository>();
 
 var app = builder.Build();
 
