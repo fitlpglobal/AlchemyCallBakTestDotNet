@@ -154,7 +154,7 @@ if (!string.IsNullOrWhiteSpace(runMigrationsValue) && bool.TryParse(runMigration
 }
 
 // Minimal API: POST /webhook/alchemy
-app.MapPost("/webhook/alchemy", async (
+var alchemyWebhook = app.MapPost("/webhook/alchemy", async (
     HttpRequest request,
     IEventRepository eventRepository,
     IDuplicateDetectionService duplicateDetectionService,
@@ -252,6 +252,9 @@ app.MapPost("/webhook/alchemy", async (
         duplicate = false
     });
 });
+
+// Hint to Swagger/OpenAPI: this endpoint accepts a JSON request body
+alchemyWebhook.Accepts<string>("application/json");
 
 // Debug endpoint: read back recent stored events
 app.MapGet("/webhook/alchemy/events", async (CallbackForwarderDbContext db, CancellationToken cancellationToken) =>
