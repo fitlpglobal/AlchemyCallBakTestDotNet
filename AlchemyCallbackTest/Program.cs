@@ -76,6 +76,9 @@ builder.Services.AddScoped<IEventRepository, EventRepository>();
 // Duplicate detection service
 builder.Services.AddSingleton<IDuplicateDetectionService, DuplicateDetectionService>();
 
+// Webhook authentication service (fail-open until explicitly enabled via env)
+builder.Services.AddSingleton<IWebhookAuthenticationService, WebhookAuthenticationService>();
+
 var app = builder.Build();
 
 // Swagger/OpenAPI (Step 0): gated by ENABLE_SWAGGER or Development environment

@@ -9,14 +9,14 @@ This Callback Forwarder service shares the Railway Postgres instance with other 
 
 ## Implementation Plan
 
-- [ ] 0. Enable Swagger (OpenAPI) with production feature flag
+- [x] 0. Enable Swagger (OpenAPI) with production feature flag
   - Add Swashbuckle and register `AddEndpointsApiExplorer` + `AddSwaggerGen`
   - Gate Swagger middleware by env var `ENABLE_SWAGGER=true` (on Railway)
   - Keep existing `POST /webhook/alchemy` endpoint intact
   - Verify Swagger UI at `/swagger` in Railway
   - _Supports: live testing after each step_
 
-- [ ] 1. Set up database infrastructure with schema isolation
+- [x] 1. Set up database infrastructure with schema isolation
   - Add Entity Framework Core packages for PostgreSQL
   - Create CallbackForwarderDbContext with schema isolation ("forwarder")
   - Configure separate migrations history table for this service
@@ -24,14 +24,14 @@ This Callback Forwarder service shares the Railway Postgres instance with other 
   - Add connection string configuration for Railway DATABASE_URL
   - _Requirements: 2.1, 8.1, 9.1, 9.3_
 
-- [ ] 2. Implement database schema and migrations
+- [x] 2. Implement database schema and migrations
   - Create initial migration for forwarder.raw_webhook_events table
   - Add indexes for performance (received_at DESC, provider, event_hash unique)
   - Configure JSONB columns for event_data and headers
   - Test migration against Railway PostgreSQL
   - _Requirements: 9.1, 9.2, 9.3_
 
-- [ ] 3. Implement core domain models and DTOs
+- [x] 3. Implement core domain models and DTOs
   - Create IncomingWebhookEvent record for HTTP requests
   - Create RawWebhookEvent record for database storage
   - Create EventProcessingResult record for operation results
@@ -39,7 +39,7 @@ This Callback Forwarder service shares the Railway Postgres instance with other 
   - Add proper JSON serialization attributes
   - _Requirements: 2.2, 2.5, 7.1_
 
-- [ ] 4. Implement event repository with retry logic
+- [x] 4. Implement event repository with retry logic
   - Create IEventRepository interface
   - Implement EventRepository with EF Core operations
   - Add exponential backoff retry policy for database operations
@@ -48,7 +48,7 @@ This Callback Forwarder service shares the Railway Postgres instance with other 
   - Add CheckHealthAsync for monitoring
   - _Requirements: 2.1, 2.3, 2.4, 10.1, 10.2, 10.3_
 
-- [ ] 5. Implement duplicate detection service
+- [x] 5. Implement duplicate detection service
   - Create IDuplicateDetectionService interface
   - Implement content-based hashing for events without IDs
   - Add in-memory cache for recent event hashes (performance optimization)
@@ -56,7 +56,7 @@ This Callback Forwarder service shares the Railway Postgres instance with other 
   - Add ComputeEventHash method using SHA256
   - _Requirements: 3.1, 3.3, 3.4, 3.5_
 
-- [ ] 6. Implement webhook authentication service
+- [x] 6. Implement webhook authentication service
   - Create IWebhookAuthenticationService interface
   - Add signature verification for Alchemy webhooks (HMAC-SHA256)
   - Implement IP allowlist checking as fallback
