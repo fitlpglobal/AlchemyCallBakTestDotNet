@@ -1,11 +1,13 @@
 using System.Text;
 using System.Text.Json;
+using System.Linq;
 using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using AlchemyCallbackTest.Forwarder;
 using AlchemyCallbackTest.Persistence;
 using AlchemyCallbackTest.Services;
+using AlchemyCallbackTest.Domain;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
@@ -152,30 +154,114 @@ if (!string.IsNullOrWhiteSpace(runMigrationsValue) && bool.TryParse(runMigration
 }
 
 // Minimal API: POST /webhook/alchemy
-app.MapPost("/webhook/alchemy", async (HttpRequest request) =>
+app.MapPost("/webhook/alchemy", async (
+    HttpRequest request,
+    IEventRepository eventRepository,
+    IDuplicateDetectionService duplicateDetectionService,
+    IWebhookAuthenticationService authenticationService,
+    ILoggerFactory loggerFactory,
+    CancellationToken cancellationToken) =>
 {
+    var logger = loggerFactory.CreateLogger("WebhookAlchemy");
+
     // Read raw body as string
     string body;
     using (var reader = new StreamReader(request.Body, Encoding.UTF8))
     {
-        body = await reader.ReadToEndAsync();
+        body = await reader.ReadToEndAsync(cancellationToken);
     }
-    Console.WriteLine($"Alchemy webhook: {body}");
+    logger.LogInformation("Alchemy webhook received: {Body}", body);
 
-    // Try to deserialize
+    WebhookPayload? payload = null;
     try
     {
-        var payload = JsonSerializer.Deserialize<WebhookPayload>(body);
+        payload = JsonSerializer.Deserialize<WebhookPayload>(body);
         if (payload != null)
         {
-            Console.WriteLine($"webhookId: {payload.WebhookId}, type: {payload.Type}, network: {payload.Event?.Network}");
+            logger.LogInformation("webhookId: {WebhookId}, type: {Type}, network: {Network}",
+                payload.WebhookId, payload.Type, payload.Event?.Network);
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Deserialization error: {ex.Message}");
+        logger.LogWarning(ex, "Deserialization error for Alchemy webhook.");
     }
-    return Results.Ok();
+
+    var headers = request.Headers.ToDictionary(h => h.Key, h => h.Value.ToString());
+
+    var signature =
+        request.Headers["X-Alchemy-Signature"].FirstOrDefault()
+        ?? request.Headers["X-Signature"].FirstOrDefault()
+        ?? request.Headers["X-Hub-Signature-256"].FirstOrDefault();
+
+    var incomingEvent = new IncomingWebhookEvent
+    {
+        Provider = "alchemy",
+        EventType = payload?.Type ?? "unknown",
+        EventData = body,
+        Signature = string.IsNullOrWhiteSpace(signature) ? null : signature,
+        SourceIp = request.HttpContext.Connection.RemoteIpAddress?.ToString(),
+        ReceivedAt = DateTimeOffset.UtcNow,
+        Headers = headers
+    };
+
+    var authResult = await authenticationService.AuthenticateAsync(incomingEvent, cancellationToken);
+    if (!authResult.IsAuthenticated)
+    {
+        logger.LogWarning("Webhook authentication failed for provider {Provider}: {Reason}", incomingEvent.Provider, authResult.FailureReason);
+        return Results.Unauthorized();
+    }
+
+    var isDuplicate = await duplicateDetectionService.IsDuplicateAsync(incomingEvent.Provider, incomingEvent.EventData, cancellationToken);
+    if (isDuplicate)
+    {
+        logger.LogInformation("Duplicate webhook event detected for provider {Provider}.", incomingEvent.Provider);
+        return Results.Ok(new
+        {
+            message = "Event already processed",
+            duplicate = true
+        });
+    }
+
+    var rawEvent = new RawWebhookEvent
+    {
+        Provider = incomingEvent.Provider,
+        EventType = incomingEvent.EventType,
+        EventData = incomingEvent.EventData,
+        EventHash = duplicateDetectionService.ComputeEventHash(incomingEvent.EventData),
+        ReceivedAt = incomingEvent.ReceivedAt,
+        SourceIp = incomingEvent.SourceIp,
+        Headers = incomingEvent.Headers
+    };
+
+    string eventId;
+    try
+    {
+        eventId = await eventRepository.StoreEventAsync(rawEvent, cancellationToken);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Failed to store webhook event from provider {Provider}.", incomingEvent.Provider);
+        return Results.StatusCode(500);
+    }
+
+    return Results.Ok(new
+    {
+        message = "Event stored",
+        eventId,
+        duplicate = false
+    });
+});
+
+// Debug endpoint: read back recent stored events
+app.MapGet("/webhook/alchemy/events", async (CallbackForwarderDbContext db, CancellationToken cancellationToken) =>
+{
+    var events = await db.RawWebhookEvents
+        .OrderByDescending(e => e.ReceivedAt)
+        .Take(50)
+        .ToListAsync(cancellationToken);
+
+    return Results.Ok(events);
 });
 
 // Minimal API: GET /ping
