@@ -259,9 +259,21 @@ alchemyWebhook.Accepts<string>("application/json");
 // Debug endpoint: read back recent stored events
 app.MapGet("/webhook/alchemy/events", async (CallbackForwarderDbContext db, CancellationToken cancellationToken) =>
 {
+    // Project to an anonymous type so SourceIp is serialized as string
     var events = await db.RawWebhookEvents
         .OrderByDescending(e => e.ReceivedAt)
         .Take(50)
+        .Select(e => new
+        {
+            e.Id,
+            e.Provider,
+            e.EventType,
+            e.EventData,
+            e.EventHash,
+            e.ReceivedAt,
+            SourceIp = e.SourceIp != null ? e.SourceIp.ToString() : null,
+            e.Headers
+        })
         .ToListAsync(cancellationToken);
 
     return Results.Ok(events);
